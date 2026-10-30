@@ -1,5 +1,5 @@
 // Kuchengericht – Service Worker: Offline-Start und Push-Nachrichten
-const V = "kg-v2";
+const V = "kg-v3";
 const SHELL = ["./", "./index.html", "./config.js", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
@@ -15,7 +15,7 @@ self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET" || new URL(req.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(req).then(res => {
+    fetch(req, { cache: "no-cache" }).then(res => {
       const copy = res.clone();
       caches.open(V).then(c => c.put(req, copy));
       return res;
