@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kuchengericht</title>
+<meta name="theme-color" content="#F5F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1B151D" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kuchengericht">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<style>
+/* Layout: App-Shell – Kopfzeile oben, fünf Bereiche, Tab-Leiste unten */
+:root{
+  --bg:#F5F2F7; --surface:#FFFFFF; --sunk:#ECE6EF; --ink:#2A1F2D; --muted:#6E6273; --line:#DCD3E0;
+  --accent:#B3164F; --accent-ink:#FFFFFF; --cocoa:#6B4430; --frost:#F9D5E2; --gold:#C98A00;
+  --ok:#1F7A4D; --ok-bg:#DDF1E6; --no:#8A3A2E; --no-bg:#F6E0DB; --wait:#7A5A00; --wait-bg:#FBEFC8;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Figtree","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --nav-h:64px; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#1B151D; --surface:#251D28; --sunk:#2F2633; --ink:#F2EAF4; --muted:#A898AD; --line:#3D3242;
+  --accent:#F0679A; --accent-ink:#2A0A17; --cocoa:#D9A27F; --frost:#4A2134; --gold:#F1CF6B;
+  --ok:#7FD4A6; --ok-bg:#1E3B2C; --no:#F0A393; --no-bg:#43241F; --wait:#F1CF6B; --wait-bg:#3E3315; color-scheme:dark}}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;min-height:100dvh;
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 16px)}
+[hidden]{display:none!important}
+img{max-width:100%}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Kopf */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:20;background:var(--bg)}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:15;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:760px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:12px}
+.brand{font-family:var(--f-display);font-weight:800;font-size:24px;letter-spacing:-.02em;line-height:1}
+.brand span{color:var(--accent)}
+.who{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:var(--sunk);border:0;color:var(--ink);font:600 13px var(--f-body);cursor:pointer}
+.who.judge{background:var(--accent);color:var(--accent-ink)}
+.demo{background:var(--wait-bg);color:var(--wait);font-size:13px;text-align:center;padding:6px 12px}
+.err{background:var(--no-bg);color:var(--no);font-size:14px;padding:10px 14px;border-radius:10px;margin-bottom:14px}
+
+main{max-width:760px;margin:0 auto;padding-block:18px}
+.view{display:flex;flex-direction:column;gap:14px}
+h2{font-family:var(--f-display);font-weight:600;font-size:22px;margin:0;letter-spacing:-.01em}
+h3.sh{font-family:var(--f-display);font-weight:600;font-size:18px;margin:8px 0 0}
+.sub{color:var(--muted);margin:-8px 0 0;font-size:14px}
+.lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+
+/* Schuldenstand */
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.person{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.person.debt{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.person .top2{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.person .nm{font-weight:700;font-size:16px}
+.big{font-family:var(--f-display);font-weight:800;font-size:40px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+.person.debt .big{color:var(--accent)}
+.bigl{font-size:12px;color:var(--muted);text-align:right}
+.cakes{display:flex;flex-wrap:wrap;gap:4px;min-height:20px;align-items:center}
+.slots{display:flex;gap:6px;align-items:center}
+.slot{width:22px;height:22px;border-radius:6px;border:1.5px dashed var(--line);display:grid;place-items:center}
+.slot.f{border:0;background:var(--sunk)}
+.slot.f::after{content:"";width:3px;height:14px;border-radius:2px;background:var(--ink)}
+.small{font-size:13px;color:var(--muted)}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap}
+.abzs{display:flex;flex-wrap:wrap;gap:6px}
+.abz{font:600 12px var(--f-body);padding:4px 9px;border-radius:999px;background:var(--sunk);border:0;color:var(--ink);cursor:pointer}
+details.abzlist{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px 14px}
+details.abzlist summary{cursor:pointer;font-weight:600;padding:10px 0}
+.abzrow{display:grid;grid-template-columns:32px minmax(0,1fr);gap:4px 10px;padding:10px 0;border-top:1px solid var(--line)}
+.abzrow .ic{font-size:22px;line-height:1.2}
+.abzrow .holders{font-size:13px;color:var(--accent);font-weight:600}
+
+/* Kuchen */
+.rank{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.rank .r{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+.rank .r:first-child{border-top:0}
+.rank .pos{font-family:var(--f-display);font-weight:800;font-size:20px;color:var(--muted)}
+.rank .r:first-child .pos{color:var(--gold)}
+.avg{font-family:var(--f-display);font-weight:800;font-size:20px;font-variant-numeric:tabular-nums}
+.st{color:var(--gold)}
+.stars{display:flex;gap:2px}
+.stars button{background:none;border:0;padding:2px 3px;font-size:26px;line-height:1;color:var(--line);border-radius:6px}
+.stars button.on{color:var(--gold)}
+.lief{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.lief .hd{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+
+/* Formular */
+form{display:flex;flex-direction:column;gap:18px}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+legend{padding:0;margin-bottom:8px}
+.picks{display:flex;flex-wrap:wrap;gap:8px}
+.pick{position:relative}
+.pick input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.pick span{display:block;padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:14px}
+.pick input:checked+span{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.pick input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.offs{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.off{position:relative}
+.off input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.off .c{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);height:100%}
+.off input:checked+.c{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.off input:focus-visible+.c{outline:2px solid var(--accent);outline-offset:2px}
+.off .t{font-weight:600}
+textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%;resize:vertical;min-height:72px}
+input[type=password],input[type=text]{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%}
+textarea:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.photo{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.photo img{width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+button,.btn{font:600 15px var(--f-body);border-radius:12px;padding:11px 16px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+button:active{transform:scale(.98)}
+.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.sm{padding:7px 12px;font-size:13px;border-radius:9px}
+.yes{background:var(--ok-bg);border-color:transparent;color:var(--ok)}
+.no{background:var(--no-bg);border-color:transparent;color:var(--no)}
+.ghost{background:transparent}
+button:disabled{opacity:.5}
+.seg{display:flex;gap:6px}
+.seg button{flex:1}
+.seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* Fälle */
+.cases{display:flex;flex-direction:column;gap:10px}
+.case{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;gap:12px;align-items:flex-start}
+.case .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.case .az{font-family:var(--f-mono);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.case .nm{font-weight:700;font-size:16px}
+.case .note{color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.case .meta{font-size:12px;color:var(--muted)}
+.case .thumb{width:72px;height:72px;flex:none;border-radius:10px;object-fit:cover;border:1px solid var(--line);cursor:zoom-in;padding:0;background:var(--sunk)}
+.case .thumb img{width:100%;height:100%;object-fit:cover;border-radius:10px;display:block}
+.case .btnrow{margin-top:6px}
+.chip{font-family:var(--f-body);display:inline-flex;align-items:center;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.chip.wait{background:var(--wait-bg);color:var(--wait)}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.chip.no{background:var(--no-bg);color:var(--no)}
+.chip.k{background:var(--frost);color:var(--accent)}
+.chip.s{background:var(--sunk);color:var(--ink)}
+.empty{border:1.5px dashed var(--line);border-radius:14px;padding:22px;color:var(--muted)}
+.empty b{display:block;color:var(--ink);margin-bottom:2px}
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.filters button{flex:none;padding:7px 12px;font-size:13px;border-radius:999px}
+.filters button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* Tab-Leiste */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--surface);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs .in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--nav-h)}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);text-decoration:none;font-size:10.5px;font-weight:600;position:relative;min-width:0}
+nav.tabs a svg{width:24px;height:24px}
+nav.tabs a[aria-current=page]{color:var(--accent)}
+.badge{position:absolute;top:8px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:11px;line-height:18px;text-align:center}
+
+/* Dialoge */
+dialog{border:0;border-radius:18px;padding:0;background:var(--surface);color:var(--ink);width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 48px)}
+dialog::backdrop{background:rgba(20,10,20,.55)}
+.dlg{padding:20px;display:flex;flex-direction:column;gap:16px}
+.dlg h3{font-family:var(--f-display);font-size:22px;margin:0}
+.sep{border-top:1px solid var(--line);padding-top:16px}
+#lb{width:auto;max-width:calc(100vw - 24px);background:transparent}
+#lb img{max-height:calc(100dvh - 60px);border-radius:12px;display:block}
+
+/* Urteilsverkündung */
+#verdict{width:min(420px,calc(100vw - 32px));text-align:center;overflow:hidden}
+#verdict .dlg{align-items:center;padding:28px 22px 22px}
+#verdict .court{font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#verdict .gavel{width:140px;height:110px}
+#verdict .word{font-family:var(--f-display);font-weight:800;font-size:46px;line-height:1;letter-spacing:-.02em;color:var(--accent);margin:0}
+#verdict.frei .word{color:var(--ok)}
+#verdict .who2{font-weight:700;font-size:18px}
+#verdict .pen{display:inline-flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+#verdict .more{font-size:13px;color:var(--muted)}
+#verdict button{width:100%}
+@media (prefers-reduced-motion:no-preference){
+  #verdict[open] .head{transform-box:view-box;transform-origin:134px 30px;animation:swing .45s cubic-bezier(.5,0,.7,1.4) both}
+  #verdict[open] .block{animation:thud .2s .38s ease-out both}
+  #verdict[open] .word{animation:stamp .35s .4s cubic-bezier(.2,1.6,.4,1) both}
+  #verdict[open] .dlg{animation:shake .25s .4s both}
+  @keyframes swing{from{transform:rotate(-55deg)}to{transform:rotate(0)}}
+  @keyframes thud{from{transform:translateY(0)}50%{transform:translateY(3px)}to{transform:none}}
+  @keyframes stamp{from{transform:scale(2.2);opacity:.2}to{transform:scale(1);opacity:1}}
+  @keyframes shake{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+}
+
+.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 14px);transform:translateX(-50%);z-index:30;
+  background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;max-width:calc(100vw - 32px)}
+.toast.bad{background:var(--no);color:var(--surface)}
+@media (prefers-reduced-motion:no-preference){.toast{animation:up .2s ease-out}@keyframes up{from{transform:translate(-50%,8px)}}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div id="demo" class="demo" hidden>Demo-Modus: Beispieldaten, nichts wird gespeichert. Trage in config.js den Supabase-Key ein.</div>
+  <div class="in gut">
+    <div class="brand">Kuchen<span>gericht</span></div>
+    <button id="whoBtn" class="who" type="button">Wer bist du?</button>
+  </div>
+</header>
+
+<main class="gut">
+  <div id="err" class="err" hidden></div>
+
+  <section id="v-stand" class="view">
+    <h2>Schuldenstand</h2>
+    <p class="sub">1 Kuchen pro Urteil · 3 Striche ergeben 1 Kuchen</p>
+    <div id="board" class="board"></div>
+    <details class="abzlist" id="abzlist"><summary>Alle Abzeichen</summary><div id="abzall"></div></details>
+  </section>
+
+  <section id="v-anzeige" class="view" hidden>
+    <h2>Antrag stellen</h2>
+    <form id="f" novalidate>
+      <fieldset>
+        <legend class="lbl">Wer hat's verbockt?</legend>
+        <div class="picks" id="f-wer"></div>
+        <div class="small">Selbstanzeige? Kronzeugen bekommen dafür das Abzeichen „Kronzeuge“.</div>
+      </fieldset>
+      <fieldset>
+        <legend class="lbl">Vergehen</legend>
+        <div class="offs" id="f-off"></div>
+        <div id="f-sonst" hidden>
+          <div class="lbl" style="margin:6px 0">Strafe für Sonstiges</div>
+          <div class="seg"><button type="button" id="p-kuchen">Kuchen</button><button type="button" id="p-strich" class="on">Strich</button></div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend class="lbl">Tathergang <span style="text-transform:none;letter-spacing:0;font-weight:500">(optional)</span></legend>
+        <textarea id="f-note" maxlength="280" placeholder="z. B. Montag 11:40, Rechner offen beim Kaffeeholen"></textarea>
+      </fieldset>
+      <fieldset>
+        <legend class="lbl">Beweisfoto <span style="text-transform:none;letter-spacing:0;font-weight:500">(optional)</span></legend>
+        <div class="photo">
+          <img id="f-prev" alt="Vorschau Beweisfoto" hidden>
+          <label class="btn filebtn" for="f-file"><span id="f-filelbl">Foto aufnehmen oder wählen</span><input id="f-file" type="file" accept="image/*"></label>
+          <button type="button" id="f-rm" class="ghost sm" hidden>Entfernen</button>
+        </div>
+        <div class="small">Bitte keine Kundendaten oder Bildschirminhalte fotografieren.</div>
+      </fieldset>
+      <button class="primary" id="f-send" type="submit">Antrag einreichen</button>
+    </form>
+  </section>
+
+  <section id="v-verhandlung" class="view" hidden>
+    <h2>Zur Verhandlung</h2>
+    <div id="open" class="cases"></div>
+  </section>
+
+  <section id="v-kuchen" class="view" hidden>
+    <h2>Kuchen</h2>
+    <p class="sub">Jeder gelieferte Kuchen wird von den anderen mit 1–5 Sternen bewertet.</p>
+    <h3 class="sh">Bäcker-Rangliste</h3>
+    <div id="rank"></div>
+    <h3 class="sh">Lieferungen</h3>
+    <div id="liefs" class="cases"></div>
+  </section>
+
+  <section id="v-akte" class="view" hidden>
+    <h2>Akte</h2>
+    <div id="filters" class="filters"></div>
+    <div id="akte" class="cases"></div>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="Bereiche">
+  <div class="in">
+    <a href="#stand" data-tab="stand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V10M12 21V4M18 21v-7"/></svg>Stand</a>
+    <a href="#anzeige" data-tab="anzeige"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Anzeigen</a>
+    <a href="#verhandlung" data-tab="verhandlung"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6M11 7l6 6M12.5 5.5l-5 5M18.5 11.5l-5 5M10 14l-7 7"/></svg>Verhandlung<span class="badge" id="badge" hidden></span></a>
+    <a href="#kuchen" data-tab="kuchen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 12l18-4v11H3z"/><path d="M3 12l18-4v3L3 15z"/><circle cx="17" cy="4.5" r="1.6"/></svg>Kuchen</a>
+    <a href="#akte" data-tab="akte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5a1 1 0 0 1 1-1h5l2 2h7a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/></svg>Akte</a>
+  </div>
+</nav>
+
+<dialog id="setup">
+  <div class="dlg">
+    <h3 id="setup-h">Wer bist du?</h3>
+    <div>
+      <div class="lbl" style="margin-bottom:8px">Ich bin</div>
+      <div class="picks" id="s-ich"></div>
+      <div class="small" style="margin-top:6px">Wird nur auf diesem Handy gespeichert und bei deinen Anzeigen und Bewertungen vermerkt.</div>
+    </div>
+    <div class="sep">
+      <div class="lbl" style="margin-bottom:8px">Push-Nachrichten</div>
+      <p class="small" id="s-push-txt" style="margin:0 0 8px"></p>
+      <button type="button" id="s-push-btn" class="sm" hidden>Aktivieren</button>
+    </div>
+    <div class="sep">
+      <div class="lbl" style="margin-bottom:8px">Richter-Modus</div>
+      <div id="s-judge-on" hidden><p style="margin:0 0 8px">Du bist als Richter angemeldet.</p><button type="button" id="s-logout" class="sm">Abmelden</button></div>
+      <form id="s-pinform" style="gap:8px"><input id="s-pin" type="password" inputmode="numeric" autocomplete="off" placeholder="Richter-PIN"><button class="sm" type="submit">Anmelden</button></form>
+    </div>
+    <button type="button" id="s-close" class="primary">Fertig</button>
+  </div>
+</dialog>
+
+<dialog id="liefer">
+  <form class="dlg" id="l-form">
+    <h3 id="l-h">Kuchen geliefert</h3>
+    <label style="display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:13px" for="l-was">Was gab's? <span class="small" style="font-weight:400">(optional)</span>
+      <input id="l-was" type="text" maxlength="60" placeholder="z. B. Käsekuchen, Muffins">
+    </label>
+    <div class="btnrow" style="justify-content:flex-end"><button type="button" id="l-cancel" class="ghost">Abbrechen</button><button type="submit" class="primary" id="l-ok">Abhaken</button></div>
+  </form>
+</dialog>
+
+<dialog id="verdict">
+  <div class="dlg">
+    <div class="court">Im Namen des Kuchengerichts</div>
+    <svg class="gavel" viewBox="0 0 160 120" aria-hidden="true">
+      <rect class="block" x="14" y="100" width="92" height="12" rx="4" fill="var(--cocoa)"/>
+      <g class="head">
+        <rect x="58" y="66" width="86" height="10" rx="5" transform="rotate(-28 58 71)" fill="var(--cocoa)"/>
+        <rect x="40" y="44" width="34" height="54" rx="8" transform="rotate(-28 57 71)" fill="var(--accent)"/>
+        <rect x="40" y="62" width="34" height="8" transform="rotate(-28 57 71)" fill="var(--frost)"/>
+      </g>
+    </svg>
+    <p class="word" id="vd-word">Schuldig!</p>
+    <div class="who2" id="vd-who"></div>
+    <div id="vd-what"></div>
+    <div class="pen" id="vd-pen"></div>
+    <div class="more" id="vd-more"></div>
+    <button type="button" class="primary" id="vd-ok">Weiter</button>
+  </div>
+</dialog>
+<dialog id="lb"><img alt="Beweisfoto"></dialog>
+
+<script>
+const LEUTE=["Philipp","Sebastian","Mika","Nathalie","Katja"];
+const VERGEHEN={
+  bildschirm:{label:"Bildschirm nicht gesperrt",strafe:"kuchen"},
+  notiz:{label:"Außer-Haus-Notiz vergessen oder falsch",strafe:"kuchen"},
+  stempeln:{label:"Ein- oder Ausstempeln vergessen",strafe:"strich"},
+  sonstiges:{label:"Sonstiges",strafe:null}
+};
+const STRICHE_PRO_KUCHEN=3;
+const TAG=864e5;
+
+const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
+const $=id=>document.getElementById(id);
+const uuid=()=>(crypto.randomUUID?crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==="x"?r:(r&3|8)).toString(16)}));
+const kurz=n=>(n||"").split(" ")[0];
+const fmt=ts=>new Date(ts).toLocaleString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+const fmtD=ts=>new Date(ts).toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"});
+const de1=n=>n.toLocaleString("de-DE",{minimumFractionDigits:1,maximumFractionDigits:1});
+function h(tag,attrs,...kids){
+  const el=document.createElement(tag);
+  for(const[k,v]of Object.entries(attrs||{})){
+    if(k==="class")el.className=v;else if(k.startsWith("on"))el.addEventListener(k.slice(2),v);
+    else if(v!==false&&v!=null)el.setAttribute(k,v===true?"":v);
+  }
+  for(const c of kids.flat()){if(c==null||c===false)continue;el.append(c.nodeType?c:document.createTextNode(String(c)))}
+  return el;
+}
+
+/* ---------- Datenquellen ---------- */
+function supaBackend(cfg){
+  const sb=supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:false}});
+  const rpc=async(fn,args)=>{const{error}=await sb.rpc(fn,args);if(error)throw new Error(error.message)};
+  return{
+    demo:false,
+    async load(){
+      const[a,l,b]=await Promise.all([
+        sb.from("antraege").select("*").order("created_at",{ascending:true}).limit(2000),
+        sb.from("lieferungen").select("*").order("created_at",{ascending:true}).limit(2000),
+        sb.from("bewertungen").select("*").limit(5000)]);
+      if(a.error)throw a.error;if(l.error)throw l.error;if(b.error)throw b.error;
+      return{antraege:a.data,lieferungen:l.data,bewertungen:b.data};
+    },
+    async upload(blob){const p=uuid()+".jpg";const{error}=await sb.storage.from("beweise").upload(p,blob,{contentType:"image/jpeg",upsert:false});if(error)throw error;return p},
+    bildUrl:p=>sb.storage.from("beweise").getPublicUrl(p).data.publicUrl,
+    async anzeigen(row){const{error}=await sb.from("antraege").insert(row);if(error)throw error},
+    async checkPin(pin){const{data,error}=await sb.rpc("pin_ok",{p_pin:pin});if(error)throw error;return data===true},
+    urteil:(pin,id,st)=>rpc("richter_urteil",{p_pin:pin,p_id:id,p_status:st}),
+    loeschen:(pin,id)=>rpc("richter_loeschen",{p_pin:pin,p_id:id}),
+    geliefert:(pin,wer,was)=>rpc("richter_kuchen_geliefert",{p_pin:pin,p_wer:wer,p_was:was||null}),
+    zurueck:(pin,wer)=>rpc("richter_lieferung_zurueck",{p_pin:pin,p_wer:wer}),
+    bewerten:(lid,von,n)=>rpc("bewerten",{p_lieferung:lid,p_von:von,p_sterne:n}),
+    pushAbo:(e,p,a,w)=>rpc("push_abonnieren",{p_endpoint:e,p_p256dh:p,p_auth:a,p_wer:w}),
+    pushWeg:e=>rpc("push_abbestellen",{p_endpoint:e}),
+    subscribe(cb){const ch=sb.channel("kg");for(const t of["antraege","lieferungen","bewertungen"])ch.on("postgres_changes",{event:"*",schema:"public",table:t},cb);ch.subscribe()}
+  };
+}
+function demoBackend(){
+  const t=hrs=>new Date(Date.now()-hrs*36e5).toISOString();
+  const D={antraege:[
+    {id:"d0",created_at:t(900),wer:"Philipp",vergehen:"bildschirm",strafe:"kuchen",notiz:"Beispiel: der Richter selbst",von:"Mika",bild:null,status:"angenommen",entschieden_at:t(890)},
+    {id:"d1",created_at:t(70),wer:"Mika",vergehen:"bildschirm",strafe:"kuchen",notiz:"Beispiel: Rechner offen beim Kaffeeholen",von:"Katja",bild:null,status:"angenommen",entschieden_at:t(68)},
+    {id:"d2",created_at:t(50),wer:"Sebastian",vergehen:"stempeln",strafe:"strich",notiz:null,von:"Philipp",bild:null,status:"angenommen",entschieden_at:t(49)},
+    {id:"d3",created_at:t(26),wer:"Sebastian",vergehen:"stempeln",strafe:"strich",notiz:"Beispiel: Ausstempeln vergessen",von:"Nathalie",bild:null,status:"angenommen",entschieden_at:t(25)},
+    {id:"d4",created_at:t(20),wer:"Katja",vergehen:"notiz",strafe:"kuchen",notiz:"Beispiel: Notiz sagte Homeoffice, war im Büro",von:"Mika",bild:null,status:"abgelehnt",entschieden_at:t(19)},
+    {id:"d5",created_at:t(1),wer:"Nathalie",vergehen:"bildschirm",strafe:"kuchen",notiz:"Beispiel: offener Fall",von:"Sebastian",bild:null,status:"offen",entschieden_at:null}
+  ],lieferungen:[{id:"l1",created_at:t(860),wer:"Philipp",was:"Marmorkuchen"}],
+  bewertungen:[{lieferung_id:"l1",von:"Mika",sterne:4},{lieferung_id:"l1",von:"Katja",sterne:5}]};
+  const subs=[],blobs={};const fire=()=>subs.forEach(f=>f());
+  const find=id=>D.antraege.find(a=>a.id===id);
+  const pinCheck=p=>{if(p!=="1234")throw new Error("Falsche PIN")};
+  return{
+    demo:true,
+    async load(){return JSON.parse(JSON.stringify(D))},
+    async upload(b){const p=uuid()+".jpg";blobs[p]=URL.createObjectURL(b);return p},
+    bildUrl:p=>blobs[p]||"",
+    async anzeigen(r){D.antraege.push({...r,id:uuid(),created_at:new Date().toISOString(),status:"offen",entschieden_at:null});fire()},
+    async checkPin(p){return p==="1234"},
+    async urteil(p,id,st){pinCheck(p);const a=find(id);a.status=st;a.entschieden_at=st==="offen"?null:new Date().toISOString();fire()},
+    async loeschen(p,id){pinCheck(p);D.antraege=D.antraege.filter(a=>a.id!==id);fire()},
+    async geliefert(p,wer,was){pinCheck(p);D.lieferungen.push({id:uuid(),wer,was:was||null,created_at:new Date().toISOString()});fire()},
+    async zurueck(p,wer){pinCheck(p);const i=D.lieferungen.map(l=>l.wer).lastIndexOf(wer);if(i>=0){const id=D.lieferungen[i].id;D.lieferungen.splice(i,1);D.bewertungen=D.bewertungen.filter(b=>b.lieferung_id!==id)}fire()},
+    async bewerten(lid,von,n){const b=D.bewertungen.find(x=>x.lieferung_id===lid&&x.von===von);b?b.sterne=n:D.bewertungen.push({lieferung_id:lid,von,sterne:n});fire()},
+    async pushAbo(){},async pushWeg(){},
+    subscribe(cb){subs.push(cb)}
+  };
+}
+
+const cfg=window.KG_CONFIG||{};
+const configured=!!(cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY);
+const API=configured?(window.supabase?supaBackend(cfg):null):demoBackend();
+const S={antraege:[],lieferungen:[],bewertungen:[],ich:ls.get("kg_ich"),pin:ls.get("kg_pin"),richter:false,tab:"stand",filter:"",sonst:"strich",file:null,err:null,lieferWer:null,loaded:false};
+if(S.ich&&!LEUTE.includes(S.ich))S.ich=null;
+
+/* ---------- Berechnung ---------- */
+function bewOf(lid){const bs=S.bewertungen.filter(b=>b.lieferung_id===lid);return{n:bs.length,avg:bs.length?bs.reduce((s,b)=>s+b.sterne,0)/bs.length:0}}
+function konto(name){
+  const mine=S.antraege.filter(a=>a.wer===name);
+  const urteile=mine.filter(a=>a.status==="angenommen").sort((a,b)=>(a.entschieden_at||"").localeCompare(b.entschieden_at||""));
+  const direkt=urteile.filter(a=>a.strafe==="kuchen").length;
+  const striche=urteile.filter(a=>a.strafe==="strich").length;
+  const ausStrichen=Math.floor(striche/STRICHE_PRO_KUCHEN);
+  const lief=S.lieferungen.filter(l=>l.wer===name);
+  const bews=S.bewertungen.filter(b=>lief.some(l=>l.id===b.lieferung_id));
+  const verdient=direkt+ausStrichen;
+  return{name,urteile,direkt,striche,rest:striche%STRICHE_PRO_KUCHEN,ausStrichen,verdient,geliefert:lief.length,
+    offen:Math.max(0,verdient-lief.length),anhaengig:mine.filter(a=>a.status==="offen").length,
+    bewN:bews.length,bewAvg:bews.length?bews.reduce((s,b)=>s+b.sterne,0)/bews.length:0,
+    anzeigenOk:S.antraege.filter(a=>a.von===name&&a.wer!==name&&a.status==="angenommen").length};
+}
+function maxIn7Tagen(urteile){
+  let best=0,j=0;const ts=urteile.map(a=>+new Date(a.entschieden_at));
+  for(let i=0;i<ts.length;i++){while(ts[i]-ts[j]>7*TAG)j++;best=Math.max(best,i-j+1)}
+  return best;
+}
+const ABZEICHEN=[
+  {ic:"🔰",name:"Ersttäter",desc:"Die erste Verurteilung kassiert.",test:k=>k.urteile.length>=1},
+  {ic:"🔁",name:"Wiederholungstäter",desc:"3 Verurteilungen innerhalb von 7 Tagen.",test:k=>maxIn7Tagen(k.urteile)>=3},
+  {ic:"🖥️",name:"Offenes Buch",desc:"3-mal den Bildschirm nicht gesperrt.",test:k=>k.urteile.filter(a=>a.vergehen==="bildschirm").length>=3},
+  {ic:"⏰",name:"Stempel-Muffel",desc:"3-mal Ein- oder Ausstempeln vergessen.",test:k=>k.urteile.filter(a=>a.vergehen==="stempeln").length>=3},
+  {ic:"🏔️",name:"Schuldenberg",desc:"Gerade 3 oder mehr Kuchen offen.",test:k=>k.offen>=3},
+  {ic:"😇",name:"Kronzeuge",desc:"Sich selbst angezeigt und verurteilt worden.",test:k=>k.urteile.some(a=>a.von===a.wer)},
+  {ic:"🕵️",name:"Spürnase",desc:"5 erfolgreiche Anzeigen gegen andere gestellt.",test:k=>k.anzeigenOk>=5},
+  {ic:"🧁",name:"Großbäcker",desc:"5 Kuchen geliefert.",test:k=>k.geliefert>=5},
+  {ic:"👨‍🍳",name:"Meisterbäcker",desc:"Mindestens 3 Bewertungen mit Ø 4,5 Sternen oder besser.",test:k=>k.bewN>=3&&k.bewAvg>=4.5},
+  {ic:"🤍",name:"Saubere Weste",desc:"30 Tage ohne Verurteilung.",test:k=>{
+    const first=S.antraege.reduce((m,a)=>!m||a.created_at<m?a.created_at:m,null);if(!first)return false;
+    const ref=k.urteile.length?k.urteile[k.urteile.length-1].entschieden_at:first;return Date.now()-new Date(ref)>=30*TAG}}
+];
+function aktenzeichen(){
+  const az={},perYear={};
+  for(const a of[...S.antraege].sort((x,y)=>x.created_at.localeCompare(y.created_at))){
+    const y=new Date(a.created_at).getFullYear();perYear[y]=(perYear[y]||0)+1;
+    az[a.id]=`KG ${y}/${String(perYear[y]).padStart(3,"0")}`;
+  }
+  return az;
+}
+
+/* ---------- Ton & Urteilsverkündung ---------- */
+let AC;
+function bang(){
+  try{
+    AC=AC||new(window.AudioContext||window.webkitAudioContext)();AC.resume();const t=AC.currentTime;
+    const o=AC.createOscillator(),g=AC.createGain();o.type="sine";o.frequency.setValueAtTime(170,t);o.frequency.exponentialRampToValueAtTime(42,t+.25);
+    g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(.001,t+.4);o.connect(g).connect(AC.destination);o.start(t);o.stop(t+.45);
+    const len=Math.floor(AC.sampleRate*.09),buf=AC.createBuffer(1,len,AC.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3);
+    const s=AC.createBufferSource(),g2=AC.createGain();s.buffer=buf;g2.gain.value=.5;s.connect(g2).connect(AC.destination);s.start(t);
+  }catch(e){}
+  try{navigator.vibrate&&navigator.vibrate(90)}catch(e){}
+}
+let verdictDone=null;
+function showVerdict(a,{mitDu=false,mehr=0}={}){
+  const schuldig=a.status==="angenommen";const dlg=$("verdict");
+  dlg.classList.toggle("frei",!schuldig);
+  $("vd-word").textContent=schuldig?"Schuldig!":"Freispruch!";
+  $("vd-who").textContent=mitDu?"Das Urteil gegen dich":a.wer;
+  $("vd-what").textContent=(VERGEHEN[a.vergehen]||{label:a.vergehen}).label;
+  const pen=$("vd-pen");pen.replaceChildren();
+  if(schuldig){
+    pen.append(h("span",{class:"chip "+(a.strafe==="kuchen"?"k":"s")},a.strafe==="kuchen"?"1 Kuchen":"1 Strich"));
+    if(a.strafe==="strich"){const k=konto(a.wer);pen.append(h("span",{class:"small"},k.rest===0?"Strich Nr. 3, macht 1 Kuchen!":`${k.rest} von ${STRICHE_PRO_KUCHEN} Strichen`))}
+  }else pen.append(h("span",{class:"small"},"Der Antrag wurde abgelehnt."));
+  $("vd-more").textContent=mehr?`+ ${mehr} weitere${mehr===1?"s":""} Urteil${mehr===1?"":"e"} in der Akte`:"";
+  $("vd-ok").textContent=mitDu?(schuldig?"Urteil annehmen":"Erleichtert weiter"):"Weiter";
+  if(dlg.open)dlg.close();dlg.showModal();
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  setTimeout(bang,reduce?0:400);
+}
+$("vd-ok").onclick=()=>{$("verdict").close()};
+$("verdict").addEventListener("close",()=>{if(verdictDone){verdictDone();verdictDone=null}});
+function checkVerdicts(){
+  if(!S.ich||!S.loaded||$("verdict").open)return;
+  const seen=ls.get("kg_seen_"+S.ich);
+  if(!seen){ls.set("kg_seen_"+S.ich,new Date().toISOString());return}
+  const neu=S.antraege.filter(a=>a.wer===S.ich&&a.status!=="offen"&&a.entschieden_at&&a.entschieden_at>seen)
+    .sort((a,b)=>a.entschieden_at.localeCompare(b.entschieden_at));
+  if(!neu.length)return;
+  const last=neu[neu.length-1];
+  verdictDone=()=>ls.set("kg_seen_"+S.ich,last.entschieden_at);
+  showVerdict(last,{mitDu:true,mehr:neu.length-1});
+}
+
+/* ---------- Anzeige ---------- */
+function cakeIcon(){
+  const s=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  s.setAttribute("viewBox","0 0 24 20");s.setAttribute("width","22");s.setAttribute("height","18");s.setAttribute("aria-hidden","true");
+  s.innerHTML='<path d="M2 10 L22 6 L22 18 L2 18 Z" fill="var(--cocoa)"/><path d="M2 10 L22 6 L22 9 L2 13 Z" fill="var(--frost)"/><circle cx="17" cy="4" r="2.2" fill="var(--accent)"/>';
+  return s;
+}
+function starText(avg){const full=Math.round(avg);return"★".repeat(full)+"☆".repeat(5-full)}
+function toast(msg,bad){
+  document.querySelectorAll(".toast").forEach(t=>t.remove());
+  const t=h("div",{class:"toast"+(bad?" bad":""),role:"status"},msg);document.body.append(t);
+  setTimeout(()=>t.remove(),2800);
+}
+function render(){
+  $("demo").hidden=!(API&&API.demo);
+  const err=S.err||(API?null:"Die App kann gerade keine Verbindung aufbauen. Prüfe dein Internet und öffne sie erneut.");
+  $("err").hidden=!err;$("err").textContent=err||"";
+  const wb=$("whoBtn");wb.className="who"+(S.richter?" judge":"");
+  wb.textContent=S.richter?"⚖ Richter":(S.ich?kurz(S.ich):"Wer bist du?");
+  for(const t of["stand","anzeige","verhandlung","kuchen","akte"])$("v-"+t).hidden=S.tab!==t;
+  document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.dataset.tab===S.tab)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
+
+  const az=aktenzeichen();
+  const konten=LEUTE.map(konto);
+  const abzOf=k=>ABZEICHEN.filter(b=>b.test(k));
+
+  /* Stand */
+  const sorted=[...konten].sort((a,b)=>b.offen-a.offen||b.rest-a.rest||a.name.localeCompare(b.name,"de"));
+  $("board").replaceChildren(...sorted.map(k=>{
+    const cakes=h("div",{class:"cakes"});
+    for(let i=0;i<Math.min(k.offen,8);i++)cakes.append(cakeIcon());
+    if(k.offen>8)cakes.append(h("span",{class:"small num"},"+"+(k.offen-8)));
+    if(!k.offen)cakes.append(h("span",{class:"small"},"Alles beglichen"));
+    const slots=h("div",{class:"slots","aria-label":`${k.rest} von ${STRICHE_PRO_KUCHEN} Strichen`});
+    for(let i=0;i<STRICHE_PRO_KUCHEN;i++)slots.append(h("span",{class:"slot"+(i<k.rest?" f":"")}));
+    slots.append(h("span",{class:"small"},`${k.rest}/${STRICHE_PRO_KUCHEN} bis zum nächsten Kuchen`));
+    const abz=abzOf(k);
+    const card=h("div",{class:"person"+(k.offen?" debt":"")},
+      h("div",{class:"top2"},
+        h("div",{},h("div",{class:"nm"},k.name),k.anhaengig?h("span",{class:"chip wait"},`${k.anhaengig} anhängig`):null),
+        h("div",{},h("div",{class:"big"},k.offen),h("div",{class:"bigl"},"Kuchen offen"))),
+      cakes,
+      h("div",{},h("div",{class:"lbl",style:"margin-bottom:6px"},"Strichkonto"),slots),
+      abz.length?h("div",{class:"abzs"},abz.map(b=>h("button",{class:"abz",type:"button",title:b.desc,onclick:()=>toast(`${b.ic} ${b.name}: ${b.desc}`)},`${b.ic} ${b.name}`))):null,
+      h("div",{class:"small"},`${k.geliefert} geliefert · ${k.striche} Striche gesamt`+(k.ausStrichen?` · ${k.ausStrichen} Kuchen aus Strichen`:""))
+    );
+    if(S.richter){
+      const row=h("div",{class:"btnrow"});
+      if(k.offen)row.append(h("button",{class:"sm yes",type:"button",onclick:()=>openLiefer(k.name)},"Kuchen geliefert ✓"));
+      if(k.geliefert)row.append(h("button",{class:"sm ghost",type:"button",onclick:e=>richter(e.currentTarget,()=>API.zurueck(S.pin,k.name),"Lieferung zurückgenommen")},"Lieferung zurücknehmen"));
+      if(row.childNodes.length)card.append(row);
+    }
+    return card;
+  }));
+  $("abzall").replaceChildren(...ABZEICHEN.map(b=>{
+    const holders=konten.filter(k=>b.test(k)).map(k=>kurz(k.name));
+    return h("div",{class:"abzrow"},h("div",{class:"ic","aria-hidden":"true"},b.ic),
+      h("div",{},h("div",{style:"font-weight:700"},b.name),h("div",{class:"small"},b.desc),
+        h("div",{class:"holders"},holders.length?holders.join(", "):h("span",{class:"small"},"Noch niemand"))));
+  }));
+
+  /* Verhandlung */
+  const open=S.antraege.filter(a=>a.status==="offen");
+  $("badge").hidden=!open.length;$("badge").textContent=open.length;
+  $("open").replaceChildren(...(open.length?open.map(a=>caseEl(a,az[a.id])):[h("div",{class:"empty"},h("b",{},"Keine offenen Anträge."),"Neue Anzeigen landen hier, bis der Richter entscheidet.")]));
+
+  /* Kuchen */
+  const baecker=konten.filter(k=>k.bewN>0).sort((a,b)=>b.bewAvg-a.bewAvg||b.bewN-a.bewN);
+  $("rank").replaceChildren(baecker.length?h("div",{class:"rank"},baecker.map((k,i)=>h("div",{class:"r"},
+      h("div",{class:"pos"},i+1),
+      h("div",{style:"min-width:0"},h("div",{style:"font-weight:700"},k.name),h("div",{class:"small"},`${k.geliefert} Kuchen · ${k.bewN} Bewertung${k.bewN===1?"":"en"}`)),
+      h("div",{style:"text-align:right"},h("div",{class:"avg"},de1(k.bewAvg)),h("div",{class:"st small"},starText(k.bewAvg))))))
+    :h("div",{class:"empty"},h("b",{},"Noch keine Bewertungen."),"Sobald ein Kuchen geliefert und bewertet ist, steht hier, wer am besten backt."));
+  const liefs=[...S.lieferungen].sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  $("liefs").replaceChildren(...(liefs.length?liefs.slice(0,60).map(l=>{
+    const b=bewOf(l.id);const mine=S.bewertungen.find(x=>x.lieferung_id===l.id&&x.von===S.ich);
+    let rate;
+    if(!S.ich)rate=h("div",{class:"small"},"Wähle oben rechts, wer du bist, um zu bewerten.");
+    else if(S.ich===l.wer)rate=h("div",{class:"small"},"Dein eigener Kuchen. Die anderen bewerten.");
+    else{
+      rate=h("div",{class:"stars",role:"group","aria-label":"Deine Bewertung"});
+      for(let n=1;n<=5;n++)rate.append(h("button",{type:"button",class:mine&&n<=mine.sterne?"on":"","aria-label":`${n} Stern${n===1?"":"e"}`,onclick:e=>bewerten(e.currentTarget,l.id,n)},"★"));
+    }
+    return h("article",{class:"lief"},
+      h("div",{class:"hd"},h("span",{style:"font-weight:700;font-size:16px"},l.was||"Kuchen"),h("span",{class:"small"},fmtD(l.created_at))),
+      h("div",{class:"small"},`von ${l.wer} · `,b.n?h("span",{class:"st"},starText(b.avg)):null,b.n?` ${de1(b.avg)} (${b.n})`:"noch unbewertet"),
+      rate);
+  }):[h("div",{class:"empty"},h("b",{},"Noch kein Kuchen geliefert."),"Wenn der Richter eine Lieferung abhakt, kann sie hier bewertet werden.")]));
+
+  /* Akte */
+  $("filters").replaceChildren(...["",...LEUTE].map(n=>h("button",{type:"button",class:S.filter===n?"on":"",onclick:()=>{S.filter=n;render()}},n?kurz(n):"Alle")));
+  let done=S.antraege.filter(a=>a.status!=="offen"&&(!S.filter||a.wer===S.filter));
+  done.sort((a,b)=>(b.entschieden_at||"").localeCompare(a.entschieden_at||""));
+  $("akte").replaceChildren(...(done.length?done.slice(0,150).map(a=>caseEl(a,az[a.id])):[h("div",{class:"empty"},h("b",{},S.filter?`Keine Fälle für ${kurz(S.filter)}.`:"Die Akte ist leer."),"Entschiedene Fälle werden hier mit Aktenzeichen archiviert.")]));
+}
+function caseEl(a,az){
+  const v=VERGEHEN[a.vergehen]||{label:a.vergehen};
+  const status=a.status==="offen"?h("span",{class:"chip wait"},"wartet auf Urteil"):a.status==="angenommen"?h("span",{class:"chip ok"},"verurteilt"):h("span",{class:"chip no"},"abgelehnt");
+  const body=h("div",{class:"body"},
+    h("div",{class:"az"},h("span",{},az),status),
+    h("div",{class:"nm"},a.wer),
+    h("div",{},v.label," ",h("span",{class:"chip "+(a.strafe==="kuchen"?"k":"s")},a.strafe==="kuchen"?"Kuchen":"Strich")),
+    a.notiz?h("div",{class:"note"},"„"+a.notiz+"“"):null,
+    h("div",{class:"meta"},`Angezeigt ${fmt(a.created_at)}`+(a.von?` von ${a.von===a.wer?"sich selbst":kurz(a.von)}`:"")+(a.entschieden_at?` · Urteil ${fmt(a.entschieden_at)}`:""))
+  );
+  if(S.richter){
+    const row=h("div",{class:"btnrow"});
+    if(a.status==="offen"){
+      row.append(
+        h("button",{class:"sm yes",type:"button",onclick:e=>urteilen(e.currentTarget,a,"angenommen")},"Annehmen"),
+        h("button",{class:"sm no",type:"button",onclick:e=>urteilen(e.currentTarget,a,"abgelehnt")},"Ablehnen"),
+        h("button",{class:"sm ghost",type:"button",onclick:e=>loeschen(e.currentTarget,a.id)},"Löschen"));
+    }else row.append(h("button",{class:"sm ghost",type:"button",onclick:e=>richter(e.currentTarget,()=>API.urteil(S.pin,a.id,"offen"),"Urteil aufgehoben")},"Urteil aufheben"));
+    body.append(row);
+  }
+  const kids=[body];
+  if(a.bild){
+    const url=API.bildUrl(a.bild);
+    kids.push(h("button",{class:"thumb",type:"button","aria-label":"Beweisfoto vergrößern",onclick:()=>{$("lb").querySelector("img").src=url;$("lb").showModal()}},h("img",{src:url,alt:"",loading:"lazy"})));
+  }
+  return h("article",{class:"case"},...kids);
+}
+
+/* ---------- Richter ---------- */
+async function richter(btn,fn,ok){
+  if(btn)btn.disabled=true;
+  try{await fn();if(ok)toast(ok);await refresh();return true}
+  catch(e){
+    if(/PIN/i.test(e.message||"")){S.richter=false;S.pin=null;ls.set("kg_pin",null);toast("PIN ungültig, Richter-Modus beendet.",true);render()}
+    else{toast("Hat nicht geklappt. Bitte nochmal versuchen.",true);if(btn)btn.disabled=false}
+    return false;
+  }
+}
+async function urteilen(btn,a,status){
+  const ok=await richter(btn,()=>API.urteil(S.pin,a.id,status),null);
+  if(ok){
+    const neu=S.antraege.find(x=>x.id===a.id)||{...a,status};
+    if(a.wer===S.ich)verdictDone=()=>ls.set("kg_seen_"+S.ich,neu.entschieden_at||new Date().toISOString());
+    showVerdict(neu);
+  }
+}
+function loeschen(btn,id){
+  if(btn.dataset.armed!=="1"){btn.dataset.armed="1";btn.textContent="Wirklich löschen?";setTimeout(()=>{if(btn.isConnected){btn.dataset.armed="";btn.textContent="Löschen"}},3000);return}
+  richter(btn,()=>API.loeschen(S.pin,id),"Antrag gelöscht");
+}
+function openLiefer(wer){S.lieferWer=wer;$("l-h").textContent=`Kuchen von ${kurz(wer)} geliefert`;$("l-was").value="";$("liefer").showModal()}
+$("l-cancel").onclick=()=>$("liefer").close();
+$("l-form").addEventListener("submit",async e=>{
+  e.preventDefault();const wer=S.lieferWer,was=$("l-was").value.trim();
+  const ok=await richter($("l-ok"),()=>API.geliefert(S.pin,wer,was),`Kuchen von ${kurz(wer)} abgehakt`);
+  $("l-ok").disabled=false;if(ok)$("liefer").close();
+});
+async function bewerten(btn,lid,n){
+  btn.disabled=true;
+  try{await API.bewerten(lid,S.ich,n);toast(`${n} Stern${n===1?"":"e"} vergeben`);await refresh()}
+  catch(e){toast("Bewertung hat nicht geklappt.",true);btn.disabled=false}
+}
+
+/* ---------- Formular ---------- */
+$("f-wer").append(...LEUTE.map((n,i)=>h("label",{class:"pick"},h("input",{type:"radio",name:"wer",id:"wer-"+i,value:n}),h("span",{},n))));
+$("f-off").append(...Object.entries(VERGEHEN).map(([k,v])=>h("label",{class:"off"},
+  h("input",{type:"radio",name:"vergehen",id:"off-"+k,value:k}),
+  h("span",{class:"c"},h("span",{class:"t"},v.label),v.strafe?h("span",{class:"chip "+(v.strafe==="kuchen"?"k":"s"),style:"align-self:flex-start"},v.strafe==="kuchen"?"1 Kuchen":"1 Strich"):h("span",{class:"small"},"Strafe wählst du unten")))));
+function updSonst(){
+  const k=document.querySelector("input[name=vergehen]:checked")?.value;
+  $("f-sonst").hidden=k!=="sonstiges";
+  $("p-kuchen").className=S.sonst==="kuchen"?"on":"";$("p-strich").className=S.sonst==="strich"?"on":"";
+}
+$("f-off").addEventListener("change",updSonst);
+$("p-kuchen").onclick=()=>{S.sonst="kuchen";updSonst()};
+$("p-strich").onclick=()=>{S.sonst="strich";updSonst()};
+
+function shrink(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file);const img=new Image();
+    img.onload=()=>{
+      const max=1600,sc=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+      const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*sc);c.height=Math.round(img.naturalHeight*sc);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+      c.toBlob(b=>b?res(b):rej(new Error("Bild")),"image/jpeg",0.8);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("Bild"))};
+    img.src=url;
+  });
+}
+$("f-file").addEventListener("change",e=>{
+  const f=e.target.files[0];if(!f)return;S.file=f;
+  const p=$("f-prev");if(p.src)URL.revokeObjectURL(p.src);p.src=URL.createObjectURL(f);p.hidden=false;
+  $("f-rm").hidden=false;$("f-filelbl").textContent="Anderes Foto";
+});
+function clearFile(){S.file=null;$("f-file").value="";const p=$("f-prev");if(p.src)URL.revokeObjectURL(p.src);p.removeAttribute("src");p.hidden=true;$("f-rm").hidden=true;$("f-filelbl").textContent="Foto aufnehmen oder wählen"}
+$("f-rm").onclick=clearFile;
+
+$("f").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!API){toast("Keine Verbindung.",true);return}
+  const wer=document.querySelector("input[name=wer]:checked")?.value;
+  const k=document.querySelector("input[name=vergehen]:checked")?.value;
+  if(!wer){toast("Wähle aus, wer es war.",true);return}
+  if(!k){toast("Wähle ein Vergehen.",true);return}
+  const btn=$("f-send");btn.disabled=true;btn.textContent=S.file?"Foto wird hochgeladen …":"Wird eingereicht …";
+  try{
+    let bild=null;
+    if(S.file)bild=await API.upload(await shrink(S.file));
+    await API.anzeigen({wer,vergehen:k,strafe:VERGEHEN[k].strafe||S.sonst,notiz:$("f-note").value.trim().slice(0,280)||null,von:S.ich||null,bild});
+    $("f").reset();clearFile();updSonst();
+    toast("Antrag eingereicht");await refresh();go("verhandlung");
+  }catch(err){toast(err.message==="Bild"?"Das Foto konnte nicht gelesen werden.":"Einreichen hat nicht geklappt. Bitte nochmal versuchen.",true)}
+  finally{btn.disabled=false;btn.textContent="Antrag einreichen"}
+});
+
+/* ---------- Push ---------- */
+const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const pushOk=()=>"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window&&location.protocol==="https:";
+function b64u(s){const p="=".repeat((4-s.length%4)%4);const b=atob((s+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(b,c=>c.charCodeAt(0))}
+async function currentSub(){if(!pushOk())return null;const reg=await navigator.serviceWorker.getRegistration();return reg?reg.pushManager.getSubscription():null}
+async function pushUI(){
+  const txt=$("s-push-txt"),btn=$("s-push-btn");btn.hidden=true;btn.onclick=null;
+  if(!API||API.demo){txt.textContent="Im Demo-Modus nicht verfügbar.";return}
+  if(!cfg.VAPID_PUBLIC_KEY){txt.textContent="Noch nicht eingerichtet (siehe Anleitung).";return}
+  if(!pushOk()){txt.textContent=isIOS&&!standalone?"Füge die App erst zum Home-Bildschirm hinzu und öffne sie von dort. Dann kannst du Push hier aktivieren.":"Dieser Browser unterstützt keine Push-Nachrichten.";return}
+  if(Notification.permission==="denied"){txt.textContent="Mitteilungen sind in den Handy-Einstellungen für diese App blockiert.";return}
+  const sub=await currentSub().catch(()=>null);
+  btn.hidden=false;
+  if(sub){txt.textContent="Aktiv auf diesem Handy: neue Anzeigen, Urteile und Kuchenalarm.";btn.textContent="Ausschalten";btn.onclick=pushOff}
+  else{txt.textContent="Lass dich bei neuen Anzeigen, Urteilen und gelieferten Kuchen benachrichtigen.";btn.textContent="Aktivieren";btn.onclick=pushOn}
+}
+async function pushOn(){
+  if(!S.ich){toast("Wähle zuerst, wer du bist.",true);return}
+  const btn=$("s-push-btn");btn.disabled=true;
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted"){toast("Ohne Erlaubnis keine Push-Nachrichten.",true);return}
+    const reg=await navigator.serviceWorker.ready;
+    const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(cfg.VAPID_PUBLIC_KEY)});
+    const j=sub.toJSON();await API.pushAbo(j.endpoint,j.keys.p256dh,j.keys.auth,S.ich);
+    toast("Push-Nachrichten aktiv");
+  }catch(e){toast("Push konnte nicht aktiviert werden.",true)}
+  finally{btn.disabled=false;pushUI()}
+}
+async function pushOff(){
+  const btn=$("s-push-btn");btn.disabled=true;
+  try{const sub=await currentSub();if(sub){await API.pushWeg(sub.endpoint).catch(()=>{});await sub.unsubscribe()}toast("Push-Nachrichten aus")}
+  catch(e){toast("Ausschalten hat nicht geklappt.",true)}
+  finally{btn.disabled=false;pushUI()}
+}
+async function pushUpdateName(){
+  try{const sub=await currentSub();if(sub&&API&&!API.demo){const j=sub.toJSON();await API.pushAbo(j.endpoint,j.keys.p256dh,j.keys.auth,S.ich)}}catch(e){}
+}
+
+/* ---------- Profil & PIN ---------- */
+$("s-ich").append(...LEUTE.map((n,i)=>h("label",{class:"pick"},h("input",{type:"radio",name:"ich",id:"ich-"+i,value:n}),h("span",{},n))));
+$("s-ich").addEventListener("change",e=>{S.ich=e.target.value;ls.set("kg_ich",S.ich);pushUpdateName();render()});
+function openSetup(first){
+  $("setup-h").textContent=first?"Willkommen im Kuchengericht":"Profil";
+  document.querySelectorAll("input[name=ich]").forEach(r=>r.checked=r.value===S.ich);
+  $("s-judge-on").hidden=!S.richter;$("s-pinform").hidden=S.richter;$("s-pin").value="";
+  pushUI();$("setup").showModal();
+}
+$("whoBtn").onclick=()=>openSetup(false);
+$("s-close").onclick=()=>$("setup").close();
+$("setup").addEventListener("close",()=>checkVerdicts());
+$("s-logout").onclick=()=>{S.richter=false;S.pin=null;ls.set("kg_pin",null);openSetup(false);render()};
+$("s-pinform").addEventListener("submit",async e=>{
+  e.preventDefault();const pin=$("s-pin").value.trim();if(!pin||!API)return;
+  try{
+    if(await API.checkPin(pin)){S.pin=pin;S.richter=true;ls.set("kg_pin",pin);toast("Richter-Modus aktiv");$("setup").close();render()}
+    else toast("PIN stimmt nicht.",true);
+  }catch(err){toast("PIN konnte nicht geprüft werden.",true)}
+});
+
+/* ---------- Navigation & Start ---------- */
+const TABS=["stand","anzeige","verhandlung","kuchen","akte"];
+function go(t){if(location.hash!=="#"+t)location.hash=t;else{S.tab=t;render()}}
+function fromHash(){const t=location.hash.slice(1);S.tab=TABS.includes(t)?t:"stand";render();window.scrollTo(0,0)}
+window.addEventListener("hashchange",fromHash);
+
+async function refresh(){
+  if(!API)return render();
+  try{const d=await API.load();S.antraege=d.antraege||[];S.lieferungen=d.lieferungen||[];S.bewertungen=d.bewertungen||[];S.err=null;S.loaded=true}
+  catch(e){S.err="Daten konnten nicht geladen werden. Prüfe deine Internetverbindung."}
+  render();
+  if(!$("setup").open)checkVerdicts();
+}
+let tmr;const soon=()=>{clearTimeout(tmr);tmr=setTimeout(refresh,300)};
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refresh()});
+
+(async()=>{
+  fromHash();updSonst();
+  if(API){
+    API.subscribe(soon);
+    if(S.pin){try{S.richter=await API.checkPin(S.pin);if(!S.richter){S.pin=null;ls.set("kg_pin",null)}}catch(e){}}
+  }
+  await refresh();
+  if(!S.ich)openSetup(true);
+})();
+if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
