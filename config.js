@@ -4,6 +4,6 @@
 
 window.KG_CONFIG = {
   SUPABASE_URL: "https://vguyjiqpqdfrkbxrhgmm.supabase.co",
-  SUPABASE_ANON_KEY: "",
+  SUPABASE_ANON_KEY: "sb_publishable_oxXHbzvFsihyJextn4jiBg_PDVA9G5v",
   VAPID_PUBLIC_KEY: "BN1_nUdiBHQGLRHaReRlvAc6CZhu-frtibsy6pLJdK2fXGrlxO6ET8dxAku1EHGUG5QV97pHpmeSC5BzdgdO91k"
 };
